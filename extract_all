@@ -13,7 +13,7 @@ usage() {
 
 extract() {
     local deb=`readlink -f $1`
-    local out=$2
+    local out="$PWD/$2"
     if [ ! -d "$out" ]; then
         mkdir $out
     fi
