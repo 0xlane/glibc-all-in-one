@@ -15,6 +15,7 @@ SOURCE="https://mirror.tuna.tsinghua.edu.cn/ubuntu/pool/main/g/glibc"
 LIBC_PREFIX="libc6_"
 LIBC_DBG_PREFIX="libc6-dbg_"
 LIBC_DEV_PREFIX="libc6-dev_"
+LIBC_DEV_I386_PREFIX="libc6-dev-i386_"
 
 die() {
   echo >&2 $1
@@ -31,6 +32,7 @@ download_single() {
   local deb_name=$LIBC_PREFIX$id.deb
   local dbg_name=$LIBC_DBG_PREFIX$id.deb
   local dev_name=$LIBC_DEV_PREFIX$id.deb
+  local dev_i386_name=$LIBC_DEV_I386_PREFIX$id.deb
   echo "Getting $id"
   if [ -d "libs/$id" ]; then
     die "  --> Downloaded before. Remove it to download again."
@@ -66,7 +68,18 @@ download_single() {
   echo "  -> Extracting libc dev package"
 
   mkdir libs/$id/.dev
-  bash -x ./extract_all debs/$dev_name libs/$id/.dev
+  ./extract_all debs/$dev_name libs/$id/.dev
+  echo "  -> Package saved to libs/$id/.dev"
+
+  # download dev-i386 package
+  local url="$SOURCE/$dev_i386_name"
+  echo "  -> Location: $url"
+  echo "  -> Downloading libc dev-i386 package"
+  wget "$url" 2>/dev/null -O debs/$dev_i386_name || die "Failed to download package from $url"
+  echo "  -> Extracting libc dev-i386 package"
+
+  mkdir libs/$id/.dev
+  ./extract_all debs/$dev_i386_name libs/$id/.dev
   echo "  -> Package saved to libs/$id/.dev"
 }
 

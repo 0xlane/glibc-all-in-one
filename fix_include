@@ -1,0 +1,97 @@
+#!/bin/bash
+cd "$(dirname "$0")"
+
+SOURCE="http://mirrors.ustc.edu.cn/gnu/libc"
+GLIBC_DIR="${PWD}/glibc"
+
+
+
+if [ ! -d "srcs" ]; then
+    mkdir srcs
+fi
+
+if [ ! -d $GLIBC_DIR ]; then
+    mkdir $GLIBC_DIR
+fi
+
+die() {
+  echo >&2 $1
+  exit 1
+}
+
+usage() {
+  echo -e >&2 "Usage: $0 version arch output_dir\nSupported version:2.19, 2.23-2.29\nSupported arch: i686, amd64"
+  exit 2
+}
+
+fix_include() {
+    local source_dir=$1
+    local out=$2
+    cd $out
+    find "$source_dir" -name "*.h" -print0 | while IFS= read -r -d $'\0' file; do
+        rel_path=${file#"$source_dir/"}
+        dirname=`dirname $rel_path`
+        mkdir -p $dirname
+        cp -rf $file $dirname/
+    done
+    cd -
+}
+
+download(){
+    local filename=$1
+    if [ ! -f srcs/$filename ]; then
+        wget "$SOURCE/$filename" -O "srcs/$filename"
+    else
+        echo "[?] srcs/$filename already exists. remove it to re-download. continue ? (y/[n])"
+        read opt
+        if [ "$opt" = "y" ] || [ "$opt" = "Y" ]; then
+            :
+        else
+            die "[*] check src/$filename manually"
+        fi
+    fi
+}
+
+extract(){
+    local filepath=$1
+    local output_dir=$2
+    if [ ! -f $filepath ]; then
+        die "[-] Invalid filepath: $filepath"
+    fi
+    if [ ! -d $output_dir ]; then
+        echo "[*] Making directory $output_dir"
+        mkdir -p $output_dir
+        cp $filepath $output_dir/src.tar.gz
+        pushd $output_dir 1>/dev/null
+        tar xf src.tar.gz
+        mv */* ./
+        rm src.tar.gz
+        popd 1>/dev/null
+    else
+        echo "[?] Seems that source code exists in $output_dir. continue ? (y/[n])"
+        read opt
+        if [ "$opt" = "y" ] || [ "$opt" = "Y" ]; then
+            :
+        else
+            die "[*] check $output_dir manually"
+        fi
+    fi
+}
+
+if [[ $# != 3 ]]; then
+  usage
+fi
+
+GLIBC_VERSION=$1
+ARCH=$2
+out=$3
+
+SRC="glibc-$GLIBC_VERSION.tar.gz"
+
+echo "[*] downloading $SRC"
+download $SRC
+
+SRC_DIR=$GLIBC_DIR/$GLIBC_VERSION/source
+echo "[*] extracting to $SRC_DIR"
+extract "srcs/$SRC" $SRC_DIR
+fix_include $SRC_DIR $out
